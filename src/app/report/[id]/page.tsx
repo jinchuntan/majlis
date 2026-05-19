@@ -17,7 +17,14 @@ import { ScoreRing } from '@/components/score-ring';
 import { RadarChart } from '@/components/radar-chart';
 import { AnalysisReport } from '@/lib/types';
 import { getReportById, generateInvestorBrief } from '@/lib/agents';
+import { OnboardingGuide } from '@/components/onboarding-guide';
 import Link from 'next/link';
+
+const reportSteps = [
+  { targetId: 'report-verdict', title: 'Your Market Readiness Score', description: 'This is your overall score out of 100. Higher means the market is more ready for your product. Check the recommendation badge for a quick verdict.', position: 'bottom' as const },
+  { targetId: 'report-tabs', title: 'Explore Detailed Insights', description: 'Browse 9 categories including risks, competitors, customer personas, compliance, localization, partners, and your launch plan.', position: 'bottom' as const },
+  { targetId: 'report-brief-btn', title: 'Investor Brief', description: 'Generate a copy-paste summary of your analysis — perfect for sharing with investors or stakeholders.', position: 'bottom' as const },
+];
 
 const severityColors: Record<string, string> = {
   critical: 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -112,7 +119,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             {report.isDemo && (
               <Badge className="bg-[#c8a45e]/15 text-[#c8a45e] border-[#c8a45e]/30">Demo</Badge>
             )}
-            <Button onClick={handleGenerateBrief} variant="outline" className="gap-2 rounded-xl cursor-pointer text-xs sm:text-sm flex-1 sm:flex-none">
+            <Button id="report-brief-btn" onClick={handleGenerateBrief} variant="outline" className="gap-2 rounded-xl cursor-pointer text-xs sm:text-sm flex-1 sm:flex-none">
               <FileText className="w-4 h-4 shrink-0" />
               <span className="hidden sm:inline">Generate Investor Brief</span>
               <span className="sm:hidden">Brief</span>
@@ -126,7 +133,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <Card className="p-5 sm:p-8 rounded-2xl border-border/50 bg-white overflow-hidden">
+          <Card id="report-verdict" className="p-5 sm:p-8 rounded-2xl border-border/50 bg-white overflow-hidden">
             <div className="flex flex-col lg:flex-row items-center lg:items-center gap-5 sm:gap-8">
               <ScoreRing
                 score={report.marketReadinessScore}
@@ -151,7 +158,7 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
         </motion.section>
 
         {/* Tabs */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs id="report-tabs" defaultValue="overview" className="space-y-6">
           <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0 scrollbar-hide">
             <TabsList className="bg-white border border-border/50 rounded-xl p-1 h-auto inline-flex w-max sm:w-auto sm:flex-wrap">
               <TabsTrigger value="overview" className="rounded-lg cursor-pointer text-xs sm:text-sm">Overview</TabsTrigger>
@@ -562,6 +569,8 @@ export default function ReportPage({ params }: { params: Promise<{ id: string }>
             </motion.div>
           </motion.div>
         )}
+
+        <OnboardingGuide pageKey="report" steps={reportSteps} />
 
         {/* Disclaimer */}
         <div className="mt-12 text-center">

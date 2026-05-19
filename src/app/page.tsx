@@ -4,6 +4,14 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Radar, Shield, Target, Users, Globe, ArrowRight, Sparkles, TrendingUp, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { OnboardingGuide } from '@/components/onboarding-guide';
+
+const landingSteps = [
+  { targetId: 'landing-hero-cta', title: 'Start Here', description: 'Click "Start Market Scan" to begin your market-entry analysis, or try a sample report to see what you\'ll get.', position: 'bottom' as const },
+  { targetId: 'landing-council', title: 'Your AI Advisory Council', description: 'Meet the 6 AI specialists who will analyze your opportunity — from compliance and competition to culture and strategy.', position: 'top' as const },
+  { targetId: 'landing-features', title: 'What You\'ll Receive', description: 'Your analysis includes a radar chart, risk review, competitor map, customer personas, and a week-by-week launch plan.', position: 'top' as const },
+  { targetId: 'landing-how-it-works', title: 'Three Simple Steps', description: 'Describe your target market, let the AI council analyze it, and get a complete expansion playbook in minutes.', position: 'top' as const },
+];
 
 const features = [
   { icon: Users, title: 'AI Council Analysis', desc: 'Six specialist agents analyze your opportunity from every angle', color: '#c8a45e' },
@@ -53,7 +61,7 @@ export default function LandingPage() {
               a complete expansion playbook in minutes.
             </p>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div id="landing-hero-cta" className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link href="/scan">
                 <Button className="bg-[#c8a45e] hover:bg-[#b8943e] text-[#1a1a2e] font-semibold px-8 py-6 text-base rounded-xl gap-2 shadow-lg shadow-[#c8a45e]/20 cursor-pointer">
                   Start Market Scan
@@ -71,7 +79,7 @@ export default function LandingPage() {
       </section>
 
       {/* Council Visual */}
-      <section className="relative py-12 sm:py-20 bg-[#1a1a2e]">
+      <section id="landing-council" className="relative py-12 sm:py-20 bg-[#1a1a2e]">
         <div className="max-w-5xl mx-auto px-5 sm:px-6">
           <motion.div
             className="text-center mb-14"
@@ -115,7 +123,7 @@ export default function LandingPage() {
       </section>
 
       {/* Features */}
-      <section className="py-12 sm:py-20 bg-[#0f0f1e]">
+      <section id="landing-features" className="py-12 sm:py-20 bg-[#0f0f1e]">
         <div className="max-w-6xl mx-auto px-5 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {features.map((f, i) => (
@@ -139,7 +147,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section className="py-12 sm:py-20 bg-[#1a1a2e]">
+      <section id="landing-how-it-works" className="py-12 sm:py-20 bg-[#1a1a2e]">
         <div className="max-w-4xl mx-auto px-5 sm:px-6">
           <motion.div
             className="text-center mb-14"
@@ -187,6 +195,8 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+
+      <OnboardingGuide pageKey="landing" steps={landingSteps} />
 
       {/* Footer */}
       <footer className="py-6 sm:py-8 bg-[#1a1a2e] border-t border-[#c8a45e]/10">

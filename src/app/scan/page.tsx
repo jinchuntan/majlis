@@ -11,6 +11,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
 import { ScanInput } from '@/lib/types';
 import { demoInput } from '@/lib/mockData';
+import { OnboardingGuide } from '@/components/onboarding-guide';
+
+const scanSteps = [
+  { targetId: 'scan-demo-btn', title: 'Try the Demo', description: 'New here? Click this to auto-fill a sample scenario so you can see how the analysis works.', position: 'bottom' as const },
+  { targetId: 'scan-form', title: 'Your Expansion Details', description: 'Fill in your company name, product, target market, budget, and timeline. All fields marked with * are required.', position: 'top' as const },
+  { targetId: 'scan-submit', title: 'Launch the Council', description: 'Once all required fields are filled, click here to start the AI analysis. Six specialist agents will evaluate your opportunity.', position: 'top' as const },
+];
 
 const industries = ['Beauty & Personal Care', 'Food & Beverage', 'Technology', 'Fashion', 'Healthcare', 'Education', 'Fintech', 'E-commerce'];
 const stages = ['Pre-revenue', 'Early growth', 'Growth', 'Scaling', 'Mature'];
@@ -81,7 +88,7 @@ function ScanForm() {
           <p className="text-gray-500">Tell us about your expansion opportunity</p>
         </motion.div>
 
-        <div className="flex gap-3 mb-8">
+        <div id="scan-demo-btn" className="flex gap-3 mb-8">
           <Button onClick={fillDemo} variant="outline" className="gap-2 rounded-xl cursor-pointer border-[#c8a45e]/30 text-[#c8a45e] hover:bg-[#c8a45e]/10">
             <Sparkles className="w-4 h-4" />
             Use Demo Example
@@ -92,7 +99,7 @@ function ScanForm() {
           </Button>
         </div>
 
-        <Card className="p-6 sm:p-8 rounded-2xl border-border/50 shadow-sm">
+        <Card id="scan-form" className="p-6 sm:p-8 rounded-2xl border-border/50 shadow-sm">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="space-y-1.5">
               <Label className="text-sm font-medium text-[#1a1a2e]">Company Name *</Label>
@@ -184,7 +191,7 @@ function ScanForm() {
             </div>
           </div>
 
-          <div className="mt-6 sm:mt-8 flex justify-stretch sm:justify-end">
+          <div id="scan-submit" className="mt-6 sm:mt-8 flex justify-stretch sm:justify-end">
             <Button
               onClick={handleSubmit}
               disabled={!isValid}
@@ -195,6 +202,8 @@ function ScanForm() {
             </Button>
           </div>
         </Card>
+
+        <OnboardingGuide pageKey="scan" steps={scanSteps} />
       </div>
     </div>
   );

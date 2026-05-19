@@ -9,6 +9,12 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AnalysisReport } from '@/lib/types';
 import { getSavedReports, deleteReport } from '@/lib/agents';
+import { OnboardingGuide } from '@/components/onboarding-guide';
+
+const reportsSteps = [
+  { targetId: 'reports-list', title: 'Your Saved Reports', description: 'All your past market analyses are saved here in your browser. Click any report to view the full dashboard.', position: 'top' as const },
+  { targetId: 'reports-new-scan', title: 'Start a New Scan', description: 'Ready to explore another market? Click here to run a new analysis anytime.', position: 'bottom' as const },
+];
 
 export default function ReportsPage() {
   const [reports, setReports] = useState<AnalysisReport[]>([]);
@@ -39,7 +45,7 @@ export default function ReportsPage() {
             <h1 className="text-2xl sm:text-3xl font-bold text-[#1a1a2e] mb-1">Saved Reports</h1>
             <p className="text-gray-500 text-sm">{reports.length} report{reports.length !== 1 ? 's' : ''} saved locally</p>
           </div>
-          <Link href="/scan" className="shrink-0">
+          <Link id="reports-new-scan" href="/scan" className="shrink-0">
             <Button className="bg-[#c8a45e] hover:bg-[#b8943e] text-[#1a1a2e] font-semibold rounded-xl gap-2 cursor-pointer">
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">New Scan</span>
@@ -48,7 +54,7 @@ export default function ReportsPage() {
         </div>
 
         {reports.length === 0 ? (
-          <Card className="p-8 sm:p-12 rounded-2xl border-border/50 bg-white text-center">
+          <Card id="reports-list" className="p-8 sm:p-12 rounded-2xl border-border/50 bg-white text-center">
             <Radar className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h2 className="text-lg font-semibold text-gray-400 mb-2">No reports yet</h2>
             <p className="text-sm text-gray-400 mb-6">Run your first market scan to see results here</p>
@@ -60,7 +66,7 @@ export default function ReportsPage() {
             </Link>
           </Card>
         ) : (
-          <div className="space-y-3">
+          <div id="reports-list" className="space-y-3">
             {reports.map((report, i) => (
               <motion.div
                 key={report.id}
@@ -114,6 +120,8 @@ export default function ReportsPage() {
             ))}
           </div>
         )}
+
+        <OnboardingGuide pageKey="reports" steps={reportsSteps} />
       </div>
     </div>
   );
