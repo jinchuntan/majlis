@@ -205,9 +205,14 @@ export default function LandingPage() {
             <Radar className="w-5 h-5 text-[#c8a45e]" />
             <span className="text-sm font-medium text-white">Majlis Radar</span>
           </div>
-          <p className="text-xs text-gray-500">
-            AI-assisted strategic guidance. Validate with local experts before execution.
-          </p>
+          <div className="text-right">
+            <p className="text-xs text-gray-500">
+              AI-assisted strategic guidance. Validate with local experts before execution.
+            </p>
+            <p className="text-xs text-gray-600 mt-1">
+              &copy; {new Date().getFullYear()} Majlis Radar. All rights reserved.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

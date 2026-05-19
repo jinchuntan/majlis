@@ -41,46 +41,56 @@ export function OnboardingGuide({ pageKey, steps }: OnboardingGuideProps) {
 
   const positionTooltip = useCallback((elRect: Rect, pos: string) => {
     const tooltipWidth = Math.min(320, window.innerWidth - 24);
+    const tooltipEstHeight = 200;
     const gap = 14;
 
     let top = 0;
     let left = 0;
+    let transform: string | undefined;
 
     // All coordinates are viewport-relative (for fixed positioning)
-    switch (pos) {
+    const spaceAbove = elRect.top;
+    const spaceBelow = window.innerHeight - elRect.top - elRect.height;
+
+    // Determine best vertical placement
+    let actualPos = pos;
+    if (pos === 'top' && spaceAbove < tooltipEstHeight + gap) {
+      actualPos = 'bottom'; // flip if no room above
+    } else if (pos === 'bottom' && spaceBelow < tooltipEstHeight + gap) {
+      actualPos = 'top'; // flip if no room below
+    }
+
+    switch (actualPos) {
       case 'bottom':
         top = elRect.top + elRect.height + gap;
         left = elRect.left + elRect.width / 2 - tooltipWidth / 2;
         break;
       case 'top':
-        top = elRect.top - gap; // will be adjusted with transform
+        top = elRect.top - gap;
         left = elRect.left + elRect.width / 2 - tooltipWidth / 2;
+        transform = 'translateY(-100%)';
         break;
       case 'left':
         top = elRect.top + elRect.height / 2;
         left = elRect.left - tooltipWidth - gap;
+        transform = 'translateY(-50%)';
         break;
       case 'right':
         top = elRect.top + elRect.height / 2;
         left = elRect.left + elRect.width + gap;
+        transform = 'translateY(-50%)';
         break;
     }
 
     // Clamp horizontally
     left = Math.max(12, Math.min(left, window.innerWidth - tooltipWidth - 12));
 
-    // If tooltip would go below viewport on bottom position, flip to top
-    if (pos === 'bottom' && top + 200 > window.innerHeight) {
-      top = elRect.top - gap;
-      return { top, left, width: tooltipWidth, transform: 'translateY(-100%)' };
+    // Clamp vertically — ensure tooltip stays within viewport
+    if (!transform) {
+      top = Math.max(12, Math.min(top, window.innerHeight - tooltipEstHeight - 12));
     }
 
-    // If tooltip would go above viewport on top position, flip to bottom
-    if (pos === 'top') {
-      return { top, left, width: tooltipWidth, transform: 'translateY(-100%)' };
-    }
-
-    return { top, left, width: tooltipWidth, transform: undefined };
+    return { top, left, width: tooltipWidth, transform };
   }, []);
 
   const updatePosition = useCallback(() => {
@@ -102,7 +112,7 @@ export function OnboardingGuide({ pageKey, steps }: OnboardingGuideProps) {
     setTooltipStyle(positionTooltip(elRect, step.position || 'bottom'));
   }, [currentStep, steps, visible, positionTooltip]);
 
-  // Scroll into view, then position after scroll settles
+  // Scroll into view with enough room for the tooltip, then position
   useEffect(() => {
     if (!visible) return;
 
@@ -112,13 +122,18 @@ export function OnboardingGuide({ pageKey, steps }: OnboardingGuideProps) {
     const el = document.getElementById(step.targetId);
     if (!el) return;
 
-    // First scroll into view
     const rect = el.getBoundingClientRect();
-    const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
+    const tooltipSpace = 220; // tooltip height + gap
+    const pos = step.position || 'bottom';
 
-    if (!inView) {
+    // Check if element + tooltip space fits in viewport
+    const needsAbove = pos === 'top' ? rect.top < tooltipSpace : false;
+    const needsBelow = pos === 'bottom' ? (window.innerHeight - rect.bottom) < tooltipSpace : false;
+    const outOfView = rect.top < 0 || rect.bottom > window.innerHeight;
+
+    if (outOfView || needsAbove || needsBelow) {
+      // Scroll so that the element is centered, giving room for tooltip on either side
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      // Wait for scroll to finish, then position
       const timer = setTimeout(updatePosition, 500);
       return () => clearTimeout(timer);
     } else {
