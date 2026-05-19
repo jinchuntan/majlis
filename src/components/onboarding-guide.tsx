@@ -16,82 +16,133 @@ interface OnboardingGuideProps {
   steps: OnboardingStep[];
 }
 
-interface TooltipPosition {
+interface Rect {
   top: number;
   left: number;
-  spotlightRect: DOMRect | null;
+  width: number;
+  height: number;
 }
 
 export function OnboardingGuide({ pageKey, steps }: OnboardingGuideProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [visible, setVisible] = useState(false);
-  const [position, setPosition] = useState<TooltipPosition>({ top: 0, left: 0, spotlightRect: null });
+  const [spotlight, setSpotlight] = useState<Rect | null>(null);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number>(0);
 
   useEffect(() => {
     const key = `majlis-onboarding-${pageKey}`;
     if (localStorage.getItem(key)) return;
 
-    // Small delay so elements have time to render/animate in
-    const timer = setTimeout(() => setVisible(true), 800);
+    const timer = setTimeout(() => setVisible(true), 1000);
     return () => clearTimeout(timer);
   }, [pageKey]);
 
-  const calculatePosition = useCallback(() => {
+  const positionTooltip = useCallback((elRect: Rect, pos: string) => {
+    const tooltipWidth = Math.min(320, window.innerWidth - 24);
+    const gap = 14;
+
+    let top = 0;
+    let left = 0;
+
+    // All coordinates are viewport-relative (for fixed positioning)
+    switch (pos) {
+      case 'bottom':
+        top = elRect.top + elRect.height + gap;
+        left = elRect.left + elRect.width / 2 - tooltipWidth / 2;
+        break;
+      case 'top':
+        top = elRect.top - gap; // will be adjusted with transform
+        left = elRect.left + elRect.width / 2 - tooltipWidth / 2;
+        break;
+      case 'left':
+        top = elRect.top + elRect.height / 2;
+        left = elRect.left - tooltipWidth - gap;
+        break;
+      case 'right':
+        top = elRect.top + elRect.height / 2;
+        left = elRect.left + elRect.width + gap;
+        break;
+    }
+
+    // Clamp horizontally
+    left = Math.max(12, Math.min(left, window.innerWidth - tooltipWidth - 12));
+
+    // If tooltip would go below viewport on bottom position, flip to top
+    if (pos === 'bottom' && top + 200 > window.innerHeight) {
+      top = elRect.top - gap;
+      return { top, left, width: tooltipWidth, transform: 'translateY(-100%)' };
+    }
+
+    // If tooltip would go above viewport on top position, flip to bottom
+    if (pos === 'top') {
+      return { top, left, width: tooltipWidth, transform: 'translateY(-100%)' };
+    }
+
+    return { top, left, width: tooltipWidth, transform: undefined };
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    const step = steps[currentStep];
+    if (!step || !visible) return;
+
+    const el = document.getElementById(step.targetId);
+    if (!el) return;
+
+    const rect = el.getBoundingClientRect();
+    const elRect: Rect = {
+      top: rect.top,
+      left: rect.left,
+      width: rect.width,
+      height: rect.height,
+    };
+
+    setSpotlight(elRect);
+    setTooltipStyle(positionTooltip(elRect, step.position || 'bottom'));
+  }, [currentStep, steps, visible, positionTooltip]);
+
+  // Scroll into view, then position after scroll settles
+  useEffect(() => {
+    if (!visible) return;
+
     const step = steps[currentStep];
     if (!step) return;
 
     const el = document.getElementById(step.targetId);
     if (!el) return;
 
+    // First scroll into view
     const rect = el.getBoundingClientRect();
-    const tooltipWidth = 320;
-    const tooltipHeight = 180;
-    const gap = 16;
-    const pos = step.position || 'bottom';
+    const inView = rect.top >= 0 && rect.bottom <= window.innerHeight;
 
-    let top = 0;
-    let left = 0;
-
-    switch (pos) {
-      case 'bottom':
-        top = rect.bottom + gap + window.scrollY;
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        break;
-      case 'top':
-        top = rect.top - tooltipHeight - gap + window.scrollY;
-        left = rect.left + rect.width / 2 - tooltipWidth / 2;
-        break;
-      case 'left':
-        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        left = rect.left - tooltipWidth - gap;
-        break;
-      case 'right':
-        top = rect.top + rect.height / 2 - tooltipHeight / 2 + window.scrollY;
-        left = rect.right + gap;
-        break;
+    if (!inView) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Wait for scroll to finish, then position
+      const timer = setTimeout(updatePosition, 500);
+      return () => clearTimeout(timer);
+    } else {
+      updatePosition();
     }
+  }, [visible, currentStep, steps, updatePosition]);
 
-    // Clamp to viewport
-    left = Math.max(12, Math.min(left, window.innerWidth - tooltipWidth - 12));
-    top = Math.max(12 + window.scrollY, top);
-
-    setPosition({ top, left, spotlightRect: rect });
-
-    // Scroll the target into view if needed
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, [currentStep, steps]);
-
+  // Recalculate on scroll and resize
   useEffect(() => {
     if (!visible) return;
-    // Recalculate after a brief delay for scroll to settle
-    const timer = setTimeout(calculatePosition, 100);
-    window.addEventListener('resize', calculatePosition);
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', calculatePosition);
+
+    const handleUpdate = () => {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(updatePosition);
     };
-  }, [visible, currentStep, calculatePosition]);
+
+    window.addEventListener('resize', handleUpdate);
+    window.addEventListener('scroll', handleUpdate, true);
+    return () => {
+      window.removeEventListener('resize', handleUpdate);
+      window.removeEventListener('scroll', handleUpdate, true);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, [visible, updatePosition]);
 
   const dismiss = useCallback(() => {
     setVisible(false);
@@ -116,67 +167,47 @@ export function OnboardingGuide({ pageKey, steps }: OnboardingGuideProps) {
 
   const step = steps[currentStep];
   const isLast = currentStep === steps.length - 1;
-  const spotRect = position.spotlightRect;
 
   return (
     <AnimatePresence>
       {visible && (
         <>
-          {/* Overlay with spotlight cutout */}
-          <div className="fixed inset-0 z-[9998]" style={{ pointerEvents: 'none' }}>
-            <svg className="w-full h-full" style={{ position: 'fixed', inset: 0 }}>
-              <defs>
-                <mask id="onboarding-spotlight">
-                  <rect x="0" y="0" width="100%" height="100%" fill="white" />
-                  {spotRect && (
-                    <rect
-                      x={spotRect.left - 6}
-                      y={spotRect.top - 6}
-                      width={spotRect.width + 12}
-                      height={spotRect.height + 12}
-                      rx="12"
-                      fill="black"
-                    />
-                  )}
-                </mask>
-              </defs>
-              <rect
-                x="0"
-                y="0"
-                width="100%"
-                height="100%"
-                fill="rgba(0,0,0,0.6)"
-                mask="url(#onboarding-spotlight)"
-                style={{ pointerEvents: 'auto' }}
-                onClick={dismiss}
-              />
-            </svg>
+          {/* Spotlight with box-shadow overlay — the huge spread creates the dark backdrop */}
+          {spotlight ? (
+            <div
+              className="fixed z-[9998] rounded-xl border-2 border-[#c8a45e] transition-all duration-300 ease-out"
+              style={{
+                top: spotlight.top - 8,
+                left: spotlight.left - 8,
+                width: spotlight.width + 16,
+                height: spotlight.height + 16,
+                boxShadow: '0 0 0 9999px rgba(0,0,0,0.6), 0 0 0 4px rgba(200,164,94,0.2)',
+                pointerEvents: 'none',
+              }}
+            />
+          ) : (
+            /* Fallback overlay before spotlight is calculated */
+            <div
+              className="fixed inset-0 z-[9998] bg-black/60"
+              onClick={dismiss}
+            />
+          )}
 
-            {/* Spotlight ring highlight */}
-            {spotRect && (
-              <div
-                className="absolute rounded-xl border-2 border-[#c8a45e] shadow-[0_0_0_4px_rgba(200,164,94,0.15)]"
-                style={{
-                  top: spotRect.top - 6,
-                  left: spotRect.left - 6,
-                  width: spotRect.width + 12,
-                  height: spotRect.height + 12,
-                  pointerEvents: 'none',
-                  transition: 'all 0.3s ease',
-                }}
-              />
-            )}
-          </div>
+          {/* Clickable backdrop behind spotlight to dismiss */}
+          <div
+            className="fixed inset-0 z-[9997]"
+            onClick={dismiss}
+          />
 
           {/* Tooltip */}
           <motion.div
             ref={tooltipRef}
-            className="fixed z-[9999] w-[320px]"
-            style={{ top: position.top, left: position.left }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.25 }}
+            className="fixed z-[9999]"
+            style={tooltipStyle}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2 }}
             key={currentStep}
           >
             <div className="bg-[#1a1a2e] border border-[#c8a45e]/40 rounded-2xl p-5 shadow-2xl shadow-black/40">
